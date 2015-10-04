@@ -190,10 +190,7 @@ bool AuthenticateButton(uint8_t* addr, uint8_t* secret)
     nonce[i] = Entropy.randomByte();
 
   if (!ibutton.ReadAuthWithChallenge(addr, 0, nonce, data, mac_from_ibutton))
-  {
-    Serial.println("Button authentication failed");
     return false;
-  }
 
   sha1::sha1nfo sha1data = {};
   sha1::sha1_init(&sha1data);
@@ -216,9 +213,6 @@ bool AuthenticateButton(uint8_t* addr, uint8_t* secret)
   ((uint32_t*)mac_computed)[2] = htonl(ntohl(*(uint32_t *)(sha_computed+8)) - 0x98badcfe);
   ((uint32_t*)mac_computed)[3] = htonl(ntohl(*(uint32_t *)(sha_computed+12)) - 0x10325476);
   ((uint32_t*)mac_computed)[4] = htonl(ntohl(*(uint32_t *)(sha_computed+16)) - 0xc3d2e1f0);
-
-  for (uint8_t i = 0; i < SHA1SIZE; i++)
-    Serialprintf("%02x %02x\n", ((uint8_t*)mac_from_ibutton)[i], ((uint8_t*)mac_computed)[SHA1SIZE - 1 - i]);
 
   for (uint8_t i = 0; i < SHA1SIZE; i++)
   {
@@ -403,7 +397,6 @@ void loop()
     ds.reset_search();
     if (ds.search(addr) && OneWire::crc8(addr, 7) == addr[7])
     {
-      SetLEDState(LEDState_Authorized);
       Serial.print("DEBUG: Found iButton with address: ");
       for (uint8_t i = 0; i < sizeof(addr); i++)
         Serialprintf("%02x", addr[i]);
@@ -414,9 +407,15 @@ void loop()
       for (uint8_t i = 0; i < SECRETSIZE; i++)
 
       if (AuthenticateButton(addr, secret))
+      {
+        SetLEDState(LEDState_Authorized);
+        Serial.print("iButton authenticated\n");
         delay(1000);
+      }
       else
+      {
         SetLEDState(LEDState_Busy);
+      }
     }
   }
 }
