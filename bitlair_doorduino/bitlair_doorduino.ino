@@ -404,7 +404,6 @@ void loop()
 
       uint8_t secret[SECRETSIZE];
       GetButtonSecret(addr, secret);
-      for (uint8_t i = 0; i < SECRETSIZE; i++)
 
       if (AuthenticateButton(addr, secret))
       {
