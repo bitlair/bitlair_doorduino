@@ -413,6 +413,7 @@ void loop()
       }
       else
       {
+        Serial.print("iButton not authenticated\n");
         SetLEDState(LEDState_Busy);
       }
     }
