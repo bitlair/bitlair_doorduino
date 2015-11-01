@@ -7,9 +7,12 @@
 #include "Entropy.h"
 #include "sha1.h"
 
-#define PIN_1WIRE              2
-#define PIN_LEDGREEN           3
-#define PIN_LEDRED             4
+#define PIN_OPEN               4
+#define PIN_CLOSE              5
+
+#define PIN_1WIRE              13
+#define PIN_LEDGREEN           12
+#define PIN_LEDRED             11
 
 #define CMD_BUFSIZE            64
 #define CMD_TIMEOUT            10000 //command timeout in milliseconds
@@ -81,6 +84,9 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("DEBUG: Board started");
+
+  pinMode(PIN_OPEN, OUTPUT);
+  pinMode(PIN_CLOSE, OUTPUT);
 
   pinMode(PIN_LEDGREEN, OUTPUT);
   pinMode(PIN_LEDRED, OUTPUT);
@@ -371,6 +377,32 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
   }
 }
 
+void ToggleLock()
+{
+  static bool lockopen;
+
+  if (lockopen)
+  {
+    Serial.println("closing lock");
+    digitalWrite(PIN_CLOSE, HIGH);
+    delay(500);
+    digitalWrite(PIN_CLOSE, LOW);
+    lockopen = false;
+  }
+  else
+  {
+    Serial.println("opening lock");
+    digitalWrite(PIN_OPEN, HIGH);
+    delay(500);
+    digitalWrite(PIN_OPEN, LOW);
+    lockopen = true;
+  }
+
+  delay(10000);
+
+  Serial.println("finished lock action");
+}
+
 void loop()
 {
   uint8_t addr[ADDRSIZE];
@@ -409,7 +441,7 @@ void loop()
       {
         SetLEDState(LEDState_Authorized);
         Serial.print("iButton authenticated\n");
-        delay(1000);
+        ToggleLock();
       }
       else
       {
