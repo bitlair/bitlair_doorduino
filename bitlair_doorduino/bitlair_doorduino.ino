@@ -56,28 +56,70 @@ int Serialprintf (const char* fmt, ...)
   Serial.print(buf);
 }
 
+uint8_t  g_ledstate = LEDState_Off;
+uint32_t g_ledtimestart;
+bool     g_fade;
+
+void ProcessLEDs()
+{
+  if (g_ledstate == LEDState_Off)
+  {
+    digitalWrite(PIN_LEDGREEN, LOW);
+    digitalWrite(PIN_LEDRED, LOW);
+  }
+  else if (g_ledstate == LEDState_Reading)
+  {
+    uint32_t timesincesetting = millis() - g_ledtimestart;
+    if (g_fade && timesincesetting < 512)
+    {
+      digitalWrite(PIN_LEDGREEN, HIGH);
+    }
+    else
+    {
+      digitalWrite(PIN_LEDGREEN, LOW);
+      g_fade = false;
+    }
+
+    uint32_t ledtime = timesincesetting % 1024;
+    uint32_t ledval;
+    if (ledtime < 512)
+      ledval = ledtime;
+    else
+      ledval = 1023 - ledtime;
+
+    ledval = (ledval * ledval) / 1024;
+    analogWrite(PIN_LEDRED, ledval);
+  }
+  else if (g_ledstate == LEDState_Authorized)
+  {
+    digitalWrite(PIN_LEDGREEN, HIGH);
+    digitalWrite(PIN_LEDRED, LOW);
+  }
+  else if (g_ledstate == LEDState_Busy)
+  {
+    digitalWrite(PIN_LEDGREEN, HIGH);
+    digitalWrite(PIN_LEDRED, HIGH);
+  }
+}
+
 void SetLEDState(uint8_t ledstate)
 {
-  if (ledstate == LEDState_Off)
+  if (ledstate == LEDState_Reading && g_ledstate != LEDState_Reading)
   {
-    digitalWrite(PIN_LEDGREEN, LOW);
-    digitalWrite(PIN_LEDRED, LOW);
+    g_ledtimestart = millis();
+    g_fade = true;
   }
-  else if (ledstate == LEDState_Reading)
-  {
-    digitalWrite(PIN_LEDGREEN, LOW);
-    digitalWrite(PIN_LEDRED, HIGH);
-  }
-  else if (ledstate == LEDState_Authorized)
-  {
-    digitalWrite(PIN_LEDGREEN, HIGH);
-    digitalWrite(PIN_LEDRED, LOW);
-  }
-  else if (ledstate == LEDState_Busy)
-  {
-    digitalWrite(PIN_LEDGREEN, HIGH);
-    digitalWrite(PIN_LEDRED, HIGH);
-  }
+
+  g_ledstate = ledstate;
+
+  ProcessLEDs();
+}
+
+void DelayLEDs(uint32_t delayms)
+{
+  uint32_t now = millis();
+  while (millis() - now < delayms)
+    ProcessLEDs();
 }
 
 void setup()
@@ -385,7 +427,7 @@ void ToggleLock()
   {
     Serial.println("closing lock");
     digitalWrite(PIN_CLOSE, HIGH);
-    delay(500);
+    DelayLEDs(500);
     digitalWrite(PIN_CLOSE, LOW);
     lockopen = false;
   }
@@ -393,12 +435,12 @@ void ToggleLock()
   {
     Serial.println("opening lock");
     digitalWrite(PIN_OPEN, HIGH);
-    delay(500);
+    DelayLEDs(500);
     digitalWrite(PIN_OPEN, LOW);
     lockopen = true;
   }
 
-  delay(10000);
+  DelayLEDs(10000);
 
   Serial.println("finished lock action");
 }
@@ -449,6 +491,8 @@ void loop()
         SetLEDState(LEDState_Busy);
       }
     }
+
+    ProcessLEDs();
   }
 }
 
