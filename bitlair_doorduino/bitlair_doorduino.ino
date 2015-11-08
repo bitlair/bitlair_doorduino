@@ -437,7 +437,7 @@ void ToggleLock()
     g_lockopen = false;
     Serial.println("closing lock");
     digitalWrite(PIN_CLOSE, HIGH);
-    DelayLEDs(500);
+    DelayLEDs(250);
     digitalWrite(PIN_CLOSE, LOW);
   }
   else
@@ -445,7 +445,7 @@ void ToggleLock()
     g_lockopen = true;
     Serial.println("opening lock");
     digitalWrite(PIN_OPEN, HIGH);
-    DelayLEDs(500);
+    DelayLEDs(250);
     digitalWrite(PIN_OPEN, LOW);
   }
 
