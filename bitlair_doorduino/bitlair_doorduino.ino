@@ -7,6 +7,7 @@
 #include "Entropy.h"
 #include "sha1.h"
 
+#define PIN_HORN               6
 #define PIN_OPEN               5
 #define PIN_CLOSE              4
 
@@ -140,6 +141,7 @@ void setup()
 
   pinMode(PIN_OPEN, OUTPUT);
   pinMode(PIN_CLOSE, OUTPUT);
+  pinMode(PIN_HORN, OUTPUT);
 
   pinMode(PIN_LEDGREEN, OUTPUT);
   pinMode(PIN_LEDRED, OUTPUT);
@@ -498,6 +500,9 @@ void loop()
       {
         Serial.print("iButton not authenticated\n");
         SetLEDState(LEDState_Busy);
+        digitalWrite(PIN_HORN, HIGH);
+        DelayLEDs(500);
+        digitalWrite(PIN_HORN, LOW);
       }
     }
 
