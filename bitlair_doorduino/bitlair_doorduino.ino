@@ -7,11 +7,11 @@
 #include "Entropy.h"
 #include "sha1.h"
 
-#define PIN_OPEN               4
-#define PIN_CLOSE              5
+#define PIN_OPEN               5
+#define PIN_CLOSE              4
 
 #define PIN_1WIRE              13
-#define PIN_LEDGREEN           12
+#define PIN_LEDGREEN           10
 #define PIN_LEDRED             11
 
 #define CMD_BUFSIZE            64
@@ -59,46 +59,57 @@ int Serialprintf (const char* fmt, ...)
 uint8_t  g_ledstate = LEDState_Off;
 uint32_t g_ledtimestart;
 bool     g_fade;
+bool     g_lockopen;
+
+#define LED_PERIOD 1024
 
 void ProcessLEDs()
 {
   if (g_ledstate == LEDState_Off)
   {
-    digitalWrite(PIN_LEDGREEN, LOW);
-    digitalWrite(PIN_LEDRED, LOW);
+    analogWrite(PIN_LEDGREEN, 0);
+    analogWrite(PIN_LEDRED, 0);
   }
   else if (g_ledstate == LEDState_Reading)
   {
-    uint32_t timesincesetting = millis() - g_ledtimestart;
-    if (g_fade && timesincesetting < 512)
-    {
-      digitalWrite(PIN_LEDGREEN, HIGH);
-    }
-    else
-    {
-      digitalWrite(PIN_LEDGREEN, LOW);
-      g_fade = false;
-    }
-
-    uint32_t ledtime = timesincesetting % 1024;
+    uint32_t timesincesetting = millis() + LED_PERIOD / 2 - g_ledtimestart;
+    uint32_t ledtime = timesincesetting % LED_PERIOD;
     uint32_t ledval;
-    if (ledtime < 512)
+    if (ledtime < LED_PERIOD / 2)
       ledval = ledtime;
     else
-      ledval = 1023 - ledtime;
+      ledval = (LED_PERIOD - 1) - ledtime;
 
-    ledval = (ledval * ledval) / 1024;
-    analogWrite(PIN_LEDRED, ledval);
+    ledval = (ledval * ledval) / LED_PERIOD;
+
+    if (g_lockopen)
+    {
+      analogWrite(PIN_LEDGREEN, ledval);
+      analogWrite(PIN_LEDRED, 0);
+    }
+    else
+    {
+      analogWrite(PIN_LEDGREEN, 0);
+      analogWrite(PIN_LEDRED, ledval);
+    }
   }
   else if (g_ledstate == LEDState_Authorized)
   {
-    digitalWrite(PIN_LEDGREEN, HIGH);
-    digitalWrite(PIN_LEDRED, LOW);
+    if (g_lockopen)
+    {
+      analogWrite(PIN_LEDGREEN, 255);
+      analogWrite(PIN_LEDRED, 0);
+    }
+    else
+    {
+      analogWrite(PIN_LEDGREEN, 0);
+      analogWrite(PIN_LEDRED, 255); 
+    }
   }
   else if (g_ledstate == LEDState_Busy)
   {
-    digitalWrite(PIN_LEDGREEN, HIGH);
-    digitalWrite(PIN_LEDRED, HIGH);
+    analogWrite(PIN_LEDGREEN, 255);
+    analogWrite(PIN_LEDRED, 255);
   }
 }
 
@@ -421,23 +432,21 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
 
 void ToggleLock()
 {
-  static bool lockopen;
-
-  if (lockopen)
+  if (g_lockopen)
   {
+    g_lockopen = false;
     Serial.println("closing lock");
     digitalWrite(PIN_CLOSE, HIGH);
     DelayLEDs(500);
     digitalWrite(PIN_CLOSE, LOW);
-    lockopen = false;
   }
   else
   {
+    g_lockopen = true;
     Serial.println("opening lock");
     digitalWrite(PIN_OPEN, HIGH);
     DelayLEDs(500);
     digitalWrite(PIN_OPEN, LOW);
-    lockopen = true;
   }
 
   DelayLEDs(10000);
