@@ -459,6 +459,7 @@ void ToggleLock()
 void loop()
 {
   uint8_t addr[ADDRSIZE];
+  uint32_t deniedcount = 0;
 
   for(;;)
   {
@@ -495,15 +496,25 @@ void loop()
         SetLEDState(LEDState_Authorized);
         Serial.print("iButton authenticated\n");
         ToggleLock();
+        deniedcount = 0;
       }
       else
       {
-        Serial.print("iButton not authenticated\n");
-        SetLEDState(LEDState_Busy);
-        digitalWrite(PIN_HORN, HIGH);
-        DelayLEDs(500);
-        digitalWrite(PIN_HORN, LOW);
+        deniedcount++;
+        if (deniedcount == 3)
+        {
+          Serial.print("iButton not authenticated\n");
+          SetLEDState(LEDState_Busy);
+          digitalWrite(PIN_HORN, HIGH);
+          DelayLEDs(500);
+          digitalWrite(PIN_HORN, LOW);
+          deniedcount = 0;
+        }
       }
+    }
+    else
+    {
+      deniedcount = 0;
     }
 
     ProcessLEDs();
