@@ -86,6 +86,8 @@ void ProcessLEDs()
       ledval = (LED_PERIOD - 1) - ledtime;
 
     ledval = (ledval * ledval) / LED_PERIOD;
+    if (!HasMainsPower())
+      ledval = (ledval + 5) / 10;
 
     if (g_lockopen)
     {
