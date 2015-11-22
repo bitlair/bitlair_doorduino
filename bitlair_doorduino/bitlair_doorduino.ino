@@ -507,12 +507,14 @@ void ToggleLock()
   {
     for (uint8_t i = 0; i < 3; i++)
     {
-      digitalWrite(PIN_HORN, HIGH);
-      DelayLEDs(250);
-      digitalWrite(PIN_HORN, LOW);
-      DelayLEDs(250);
+      //disabled because sounding the horn resets the arduino
+      //digitalWrite(PIN_HORN, HIGH);
+      DelayLEDs(500);
+      //disabled because sounding the horn resets the arduino
+      //digitalWrite(PIN_HORN, LOW);
+      DelayLEDs(500);
     }
-    DelayLEDs(8500);
+    DelayLEDs(7000);
   }
 
   Serial.println("finished lock action");
@@ -572,9 +574,10 @@ void loop()
         {
           Serial.print("iButton not authenticated\n");
           SetLEDState(LEDState_Busy);
-          digitalWrite(PIN_HORN, HIGH);
-          DelayLEDs(500);
-          digitalWrite(PIN_HORN, LOW);
+          //disabled because sounding the horn resets the arduino
+          //digitalWrite(PIN_HORN, HIGH);
+          //DelayLEDs(500);
+          //digitalWrite(PIN_HORN, LOW);
           deniedcount = 0;
         }
       }
