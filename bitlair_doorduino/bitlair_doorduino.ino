@@ -45,6 +45,8 @@
 OneWire ds(PIN_1WIRE);
 DS1961  ibutton(&ds);
 
+bool HasMainsPower();
+
 int Serialprintf (const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 int Serialprintf (const char* fmt, ...)
@@ -147,6 +149,7 @@ void setup()
 
   pinMode(PIN_LEDGREEN, OUTPUT);
   pinMode(PIN_LEDRED, OUTPUT);
+  pinMode(PIN_MAINS_POWER, INPUT);
 
   SetLEDState(LEDState_Off);
 
@@ -494,9 +497,28 @@ void ToggleLock()
     digitalWrite(PIN_OPEN, LOW);
   }
 
-  DelayLEDs(10000);
+  if (HasMainsPower())
+  {
+    DelayLEDs(10000);
+  }
+  else
+  {
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      digitalWrite(PIN_HORN, HIGH);
+      DelayLEDs(250);
+      digitalWrite(PIN_HORN, LOW);
+      DelayLEDs(250);
+    }
+    DelayLEDs(8500);
+  }
 
   Serial.println("finished lock action");
+}
+
+bool HasMainsPower()
+{
+  return digitalRead(PIN_MAINS_POWER) == HIGH;
 }
 
 void loop()
