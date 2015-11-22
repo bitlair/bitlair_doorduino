@@ -217,15 +217,22 @@ bool GetButtonSecret(uint8_t* addr, uint8_t* secret)
   {
     uint16_t startaddr = i * STORAGESIZE;
     bool sameaddr = true;
+    bool isempty = true;
     for (uint16_t j = 0; j < ADDRSIZE; j++)
     {
       uint8_t eeprombyte = EEPROM.read(startaddr + j);
+      if (isempty && eeprombyte != 0xFF)
+        isempty = false;
+
       if (eeprombyte != addr[j])
       {
         sameaddr = false;
         break;
       }
     }
+
+    if (isempty)
+      continue;
 
     if (sameaddr)
     {
@@ -241,6 +248,34 @@ bool GetButtonSecret(uint8_t* addr, uint8_t* secret)
   Serial.println("DEBUG: can't find secret for button");
 
   return false;
+}
+
+void ListButtons()
+{
+  Serial.println("button list start");
+
+  for (uint16_t i = 0; i < EEPROMSIZE / STORAGESIZE; i++)
+  {
+    uint16_t startaddr = i * STORAGESIZE;
+    uint8_t  buttonid[ADDRSIZE];
+    bool     isempty = true;
+    for (uint16_t j = 0; j < ADDRSIZE; j++)
+    {
+      uint8_t eeprombyte = EEPROM.read(startaddr + j);
+      if (isempty && eeprombyte != 0xFF)
+        isempty = false;
+
+      buttonid[j] = eeprombyte;
+    }
+
+    if (isempty)
+      continue;
+
+    Serialprintf("button: ");
+    for (uint16_t j = 0; j < ADDRSIZE; j++)
+      Serialprintf("%02x", buttonid[j]);
+    Serialprintf("\n");
+  }
 }
 
 bool AuthenticateButton(uint8_t* addr, uint8_t* secret)
@@ -373,6 +408,7 @@ bool GetHexWordFromCMD(char* cmdbuf, uint8_t cmdbuffill, uint8_t* wordpos, uint8
 
 #define CMD_ADD_BUTTON    "add_button"
 #define CMD_REMOVE_BUTTON "remove_button"
+#define CMD_LIST_BUTTONS "list_buttons"
 
 void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
 {
@@ -381,6 +417,7 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
 
   bool isadd = strncmp(CMD_ADD_BUTTON, cmdbuf, strlen(CMD_ADD_BUTTON)) == 0;
   bool isremove = strncmp(CMD_REMOVE_BUTTON, cmdbuf, strlen(CMD_REMOVE_BUTTON)) == 0;
+  bool islist = strncmp(CMD_LIST_BUTTONS, cmdbuf, strlen(CMD_LIST_BUTTONS)) == 0;
 
   if (isadd || isremove)
   {
@@ -427,6 +464,10 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
       Serialprintf("DEBUG: removing button\n");
       RemoveButton(addr);
     }
+  }
+  else if (islist)
+  {
+    ListButtons();
   }
   else
   {
