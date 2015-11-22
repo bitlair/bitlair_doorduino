@@ -15,6 +15,8 @@
 #define PIN_LEDGREEN           10
 #define PIN_LEDRED             11
 
+#define PIN_MAINS_POWER        9
+
 #define CMD_BUFSIZE            64
 #define CMD_TIMEOUT            10000 //command timeout in milliseconds
 
