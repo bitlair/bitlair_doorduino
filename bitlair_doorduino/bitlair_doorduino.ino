@@ -480,42 +480,37 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
   }
 }
 
+#define TOGGLE_TIME 2500
+#define BUTTON_TIME 250
+
 void ToggleLock()
 {
   if (g_lockopen)
   {
     g_lockopen = false;
     Serial.println("closing lock");
-    digitalWrite(PIN_CLOSE, HIGH);
-    DelayLEDs(250);
-    digitalWrite(PIN_CLOSE, LOW);
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      digitalWrite(PIN_CLOSE, HIGH);
+      DelayLEDs(BUTTON_TIME);
+      digitalWrite(PIN_CLOSE, LOW);
+      DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
+    }
   }
   else
   {
     g_lockopen = true;
     Serial.println("opening lock");
-    digitalWrite(PIN_OPEN, HIGH);
-    DelayLEDs(250);
-    digitalWrite(PIN_OPEN, LOW);
-  }
-
-  if (HasMainsPower())
-  {
-    DelayLEDs(10000);
-  }
-  else
-  {
     for (uint8_t i = 0; i < 3; i++)
     {
-      //disabled because sounding the horn resets the arduino
-      //digitalWrite(PIN_HORN, HIGH);
-      DelayLEDs(500);
-      //disabled because sounding the horn resets the arduino
-      //digitalWrite(PIN_HORN, LOW);
-      DelayLEDs(500);
+      digitalWrite(PIN_OPEN, HIGH);
+      DelayLEDs(BUTTON_TIME);
+      digitalWrite(PIN_OPEN, LOW);
+      DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
     }
-    DelayLEDs(7000);
   }
+
+  DelayLEDs(4000);
 
   Serial.println("finished lock action");
 }
