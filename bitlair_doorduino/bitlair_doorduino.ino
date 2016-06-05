@@ -286,8 +286,12 @@ void ListButtons()
 #define RANDOMDELAY_MIN  50
 #define RANDOMDELAY_MAX 200
 
-bool AuthenticateButton(uint8_t* addr, uint8_t* secret)
+bool AuthenticateButton(uint8_t* addr)
 {
+  uint8_t secret[SECRETSIZE];
+  if (!GetButtonSecret(addr, secret))
+    return false;
+
   uint8_t mac_from_ibutton[SHA1SIZE];
   uint8_t data[32];
   uint8_t nonce[3];
@@ -560,10 +564,7 @@ void loop()
         Serialprintf("%02x", addr[i]);
       Serial.print('\n');
 
-      uint8_t secret[SECRETSIZE];
-      GetButtonSecret(addr, secret);
-
-      if (AuthenticateButton(addr, secret))
+      if (AuthenticateButton(addr))
       {
         SetLEDState(LEDState_Authorized);
         Serial.print("iButton authenticated\n");
