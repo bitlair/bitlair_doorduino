@@ -283,6 +283,9 @@ void ListButtons()
   }
 }
 
+#define RANDOMDELAY_MIN  50
+#define RANDOMDELAY_MAX 200
+
 bool AuthenticateButton(uint8_t* addr, uint8_t* secret)
 {
   uint8_t mac_from_ibutton[SHA1SIZE];
@@ -317,13 +320,18 @@ bool AuthenticateButton(uint8_t* addr, uint8_t* secret)
   ((uint32_t*)mac_computed)[3] = htonl(ntohl(*(uint32_t *)(sha_computed+12)) - 0x10325476);
   ((uint32_t*)mac_computed)[4] = htonl(ntohl(*(uint32_t *)(sha_computed+16)) - 0xc3d2e1f0);
 
+  //this check should always take the same amount of time, to prevent a timing attack
+  bool macvalid = true;
   for (uint8_t i = 0; i < SHA1SIZE; i++)
   {
     if (mac_from_ibutton[i] != mac_computed[SHA1SIZE - 1 - i])
-      return false;
+      macvalid = false;
   }
 
-  return true;
+  //add a random delay
+  delayMicroseconds(Entropy.random(RANDOMDELAY_MIN, RANDOMDELAY_MAX));
+
+  return macvalid;
 }
 
 bool ReadCMD(char* cmdbuf, uint8_t* cmdbuffill)
