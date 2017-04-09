@@ -3,8 +3,8 @@
 5:  reader -              zwarte kabel zwarte draad
 6:  opener deur open      CAT5 groen  aderpaar
 7:  opener deur open      CAT5 groen  aderpaar
-8:  opener deur open      CAT5 blauw  aderpaar
-9:  opener deur open      CAT5 blauw  aderpaar
+8:  opener deur dicht     CAT5 bruin  aderpaar
+9:  opener deur dicht     CAT5 bruin  aderpaar
 10: reader lezer          zwarte kabel wit
 11: reader ledje          zwarte kabel groen
 12: reader ledje          zwarte kabel blauw
