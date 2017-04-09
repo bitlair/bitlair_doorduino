@@ -1,0 +1,12 @@
+3:  opener +              CAT5 oranje aderpaar
+4:  opener -              CAT5 blauw  aderpaar
+5:  reader -              zwarte kabel zwarte draad
+6:  opener deur open      CAT5 groen  aderpaar
+7:  opener deur open      CAT5 groen  aderpaar
+8:  opener deur open      CAT5 blauw  aderpaar
+9:  opener deur open      CAT5 blauw  aderpaar
+10: reader lezer          zwarte kabel wit
+11: reader ledje          zwarte kabel groen
+12: reader ledje          zwarte kabel blauw
+13: deurbel               telefoonkabel rood
+13: deurbel               telefoonkabel blauw
