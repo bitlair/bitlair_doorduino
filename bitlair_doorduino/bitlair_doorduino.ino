@@ -7,10 +7,9 @@
 #include "Entropy.h"
 #include "sha1.h"
 
-#define PIN_CLOSE               4
-#define PIN_OPEN                5
-#define PIN_LOCK                6
-#define PIN_UNLOCK              7
+#define PIN_HORN               6
+#define PIN_OPEN               5
+#define PIN_CLOSE              4
 
 #define PIN_1WIRE              13
 #define PIN_LEDGREEN           10
@@ -148,8 +147,7 @@ void setup()
 
   pinMode(PIN_OPEN, OUTPUT);
   pinMode(PIN_CLOSE, OUTPUT);
-  pinMode(PIN_LOCK, OUTPUT);
-  pinMode(PIN_UNLOCK, OUTPUT);
+  pinMode(PIN_HORN, OUTPUT);
 
   pinMode(PIN_LEDGREEN, OUTPUT);
   pinMode(PIN_LEDRED, OUTPUT);
@@ -494,45 +492,8 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
   }
 }
 
-void OpenLock() {
-  // Lock motor has 200ms lead time and 200ms overlap
-  digitalWrite(PIN_LOCK, HIGH);
-  DelayLEDs(200);
-  digitalWrite(PIN_OPEN, HIGH);
-  DelayLEDs(200);
-  digitalWrite(PIN_LOCK, LOW);
-  DelayLEDs(4800);
-  digitalWrite(PIN_OPEN, LOW);
-  DelayLEDs(100);
- 
-  // Back up  a bit
-  digitalWrite(PIN_CLOSE, HIGH);
-  DelayLEDs(400);
-  digitalWrite(PIN_CLOSE, LOW);
-  DelayLEDs(100);
- 
-  // Unlock motor
-  digitalWrite(PIN_UNLOCK, HIGH);
-  DelayLEDs(100);
-  digitalWrite(PIN_UNLOCK, LOW);
-}
- 
-void CloseLock() {
-  // Lock motor has 200ms lead time and 200ms overlap
-  digitalWrite(PIN_LOCK, HIGH);
-  DelayLEDs(200);
-  digitalWrite(PIN_CLOSE, HIGH);
-  DelayLEDs(200);
-  digitalWrite(PIN_LOCK, LOW);
-  DelayLEDs(4800);
-  digitalWrite(PIN_CLOSE, LOW);
-  DelayLEDs(100);
- 
-  // Unlock motor
-  digitalWrite(PIN_UNLOCK, HIGH);
-  DelayLEDs(100);
-  digitalWrite(PIN_UNLOCK, LOW);
-}
+#define TOGGLE_TIME 2500
+#define BUTTON_TIME 250
 
 void ToggleLock()
 {
@@ -540,13 +501,25 @@ void ToggleLock()
   {
     g_lockopen = false;
     Serial.println("closing lock");
-    CloseLock();
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      digitalWrite(PIN_CLOSE, HIGH);
+      DelayLEDs(BUTTON_TIME);
+      digitalWrite(PIN_CLOSE, LOW);
+      DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
+    }
   }
   else
   {
     g_lockopen = true;
     Serial.println("opening lock");
-    OpenLock();
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      digitalWrite(PIN_OPEN, HIGH);
+      DelayLEDs(BUTTON_TIME);
+      digitalWrite(PIN_OPEN, LOW);
+      DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
+    }
   }
 
   DelayLEDs(4000);
@@ -556,8 +529,7 @@ void ToggleLock()
 
 bool HasMainsPower()
 {
-  return true;
-  //return digitalRead(PIN_MAINS_POWER) == HIGH;
+  return digitalRead(PIN_MAINS_POWER) == HIGH;
 }
 
 void loop()
