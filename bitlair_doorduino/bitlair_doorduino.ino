@@ -7,15 +7,37 @@
 #include "Entropy.h"
 #include "sha1.h"
 
-#define PIN_HORN               6
-#define PIN_OPEN               5
-#define PIN_CLOSE              4
+
+#include <Arduino.h>
+// Motor steps per revolution. Most steppers are 200 steps or 1.8 degrees/step
+#define MOTOR_STEPS            100
+#define RPM                    120
+#define DIR                    A0
+#define STEP                   9
+#include "A4988.h"
+A4988 stepper(MOTOR_STEPS, DIR, STEP);
+
+#define INPUT_SOLENOID         4
+#define INPUT_HORN             3
+#define PIN_LEDSOLENOID        6
+#define PIN_LEDHORN            5
+bool    StateSolenoid = false;
+bool    StateHorn = false;
+uint32_t SolenoidStartTime;
+
+
+
+#define PIN_DOORPOWER          A3
+#define PIN_SOLENOID           A5
+#define PIN_HORN               A4
+#define PIN_OPEN               8
+#define PIN_CLOSE              7
 
 #define PIN_1WIRE              13
 #define PIN_LEDGREEN           10
 #define PIN_LEDRED             11
 
-#define PIN_MAINS_POWER        9
+#define PIN_MAINS_POWER        A2
 
 #define CMD_BUFSIZE            64
 #define CMD_TIMEOUT            10000 //command timeout in milliseconds
@@ -145,6 +167,16 @@ void setup()
   Serial.begin(115200);
   Serial.println("DEBUG: Board started");
 
+  stepper.begin(RPM);
+  stepper.enable();
+  stepper.setMicrostep(1);  // Set microstep mode to 1:1
+
+  pinMode(INPUT_SOLENOID, INPUT_PULLUP);
+  pinMode(INPUT_HORN, INPUT_PULLUP);
+  pinMode(PIN_LEDSOLENOID, OUTPUT);
+  pinMode(PIN_LEDHORN, OUTPUT);
+  pinMode(PIN_DOORPOWER, OUTPUT);
+  pinMode(PIN_SOLENOID, OUTPUT);
   pinMode(PIN_OPEN, OUTPUT);
   pinMode(PIN_CLOSE, OUTPUT);
   pinMode(PIN_HORN, OUTPUT);
@@ -152,6 +184,10 @@ void setup()
   pinMode(PIN_LEDGREEN, OUTPUT);
   pinMode(PIN_LEDRED, OUTPUT);
   pinMode(PIN_MAINS_POWER, INPUT);
+
+  digitalWrite(PIN_OPEN, LOW);
+  digitalWrite(PIN_CLOSE, LOW);
+  digitalWrite(PIN_DOORPOWER, LOW);
 
   SetLEDState(LEDState_Off);
 
@@ -501,28 +537,25 @@ void ToggleLock()
   {
     g_lockopen = false;
     Serial.println("closing lock");
-    for (uint8_t i = 0; i < 3; i++)
-    {
-      digitalWrite(PIN_CLOSE, HIGH);
-      DelayLEDs(BUTTON_TIME);
-      digitalWrite(PIN_CLOSE, LOW);
-      DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
-    }
+    digitalWrite(PIN_DOORPOWER, HIGH);
+    digitalWrite(PIN_CLOSE, HIGH);
+    DelayLEDs(BUTTON_TIME);
+    DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
   }
   else
   {
     g_lockopen = true;
     Serial.println("opening lock");
-    for (uint8_t i = 0; i < 3; i++)
-    {
-      digitalWrite(PIN_OPEN, HIGH);
-      DelayLEDs(BUTTON_TIME);
-      digitalWrite(PIN_OPEN, LOW);
-      DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
-    }
+    digitalWrite(PIN_DOORPOWER, HIGH);
+    digitalWrite(PIN_OPEN, HIGH);
+    DelayLEDs(BUTTON_TIME);
+    DelayLEDs(TOGGLE_TIME - BUTTON_TIME);
   }
 
   DelayLEDs(4000);
+  digitalWrite(PIN_OPEN, LOW);
+  digitalWrite(PIN_CLOSE, LOW);
+  digitalWrite(PIN_DOORPOWER, LOW);
 
   Serial.println("finished lock action");
 }
@@ -570,6 +603,15 @@ void loop()
         Serial.print("iButton authenticated\n");
         ToggleLock();
         deniedcount = 0;
+
+        if(g_lockopen == true){
+          StateSolenoid = true;
+          SolenoidStartTime = millis();
+          Serial.print("Solenoid activated\n");
+          digitalWrite(PIN_SOLENOID, HIGH);
+          stepper.move(MOTOR_STEPS*(RPM/60)*10);
+        }
+
       }
       else
       {
@@ -592,6 +634,34 @@ void loop()
     }
 
     ProcessLEDs();
+
+    digitalWrite(PIN_LEDSOLENOID, HIGH);
+    digitalWrite(PIN_LEDHORN, HIGH);
+    if (digitalRead(INPUT_SOLENOID) == LOW) {
+      if(StateSolenoid == false){
+        StateSolenoid = true;
+        SolenoidStartTime = millis();
+        Serial.print("Solenoid activated\n");
+        digitalWrite(PIN_SOLENOID, HIGH);
+        stepper.move(MOTOR_STEPS*(RPM/60)*10);
+      }
+    }
+    if(StateSolenoid == true && ((millis() - SolenoidStartTime) > (10*1000)) ){
+      digitalWrite(PIN_SOLENOID, LOW);
+      StateSolenoid = false;
+    }
+    if (digitalRead(INPUT_HORN) == LOW) {
+      if(StateHorn == false){
+        StateHorn = true;
+        Serial.print("Horn activated\n");
+        digitalWrite(PIN_HORN, HIGH);
+      }
+    }else{
+      StateHorn = false;
+      digitalWrite(PIN_HORN, LOW);
+    }
+
+
   }
 }
 
