@@ -3,21 +3,23 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <EEPROM.h>
+// #include <EEPROM.h>
 #include "Entropy.h"
 #include "sha1.h"
+#include "Wire.h"
 
 
 #include <Arduino.h>
 // Motor steps per revolution. Most steppers are 200 steps or 1.8 degrees/step
-#define MOTOR_STEPS            100
-#define RPM                    120
-#define DIR                    A0
+#define MOTOR_STEPS            2
+#define RPM                    60
+#define DIR                    A6
+// #define STEP                   A7
 #define STEP                   9
 #include "A4988.h"
 A4988 stepper(MOTOR_STEPS, DIR, STEP);
 
-#define INPUT_SOLENOID         4
+#define INPUT_SOLENOID         7
 #define INPUT_HORN             3
 #define PIN_LEDSOLENOID        6
 #define PIN_LEDHORN            5
@@ -27,17 +29,17 @@ uint32_t SolenoidStartTime;
 
 
 
-#define PIN_DOORPOWER          A3
-#define PIN_SOLENOID           A5
-#define PIN_HORN               A4
-#define PIN_OPEN               8
-#define PIN_CLOSE              7
+#define PIN_DOORPOWER          A1
+#define PIN_SOLENOID           A3
+#define PIN_HORN               A2
+#define PIN_OPEN               13
+#define PIN_CLOSE              A0
 
-#define PIN_1WIRE              13
+#define PIN_1WIRE              8
 #define PIN_LEDGREEN           10
 #define PIN_LEDRED             11
 
-#define PIN_MAINS_POWER        A2
+#define PIN_MAINS_POWER        2
 
 #define CMD_BUFSIZE            64
 #define CMD_TIMEOUT            10000 //command timeout in milliseconds
@@ -45,7 +47,8 @@ uint32_t SolenoidStartTime;
 #define SECRETSIZE             8
 #define ADDRSIZE               8
 #define STORAGESIZE            (SECRETSIZE + ADDRSIZE)
-#define EEPROMSIZE             1024
+#define EEPROMDEVICEADDRESS    0x50
+#define EEPROMSIZE             2048
 #define SHA1SIZE               20
 
 #define IBUTTON_SEARCH_TIMEOUT 60000 //timeout searching for ibutton
@@ -166,6 +169,7 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("DEBUG: Board started");
+  Wire.begin();
 
   stepper.begin(RPM);
   stepper.enable();
@@ -179,7 +183,7 @@ void setup()
   pinMode(PIN_SOLENOID, OUTPUT);
   pinMode(PIN_OPEN, OUTPUT);
   pinMode(PIN_CLOSE, OUTPUT);
-  pinMode(PIN_HORN, OUTPUT);
+  pinMode(PIN_HORN, OUTPUT);  
 
   pinMode(PIN_LEDGREEN, OUTPUT);
   pinMode(PIN_LEDRED, OUTPUT);
@@ -188,10 +192,39 @@ void setup()
   digitalWrite(PIN_OPEN, LOW);
   digitalWrite(PIN_CLOSE, LOW);
   digitalWrite(PIN_DOORPOWER, LOW);
+  digitalWrite(PIN_HORN, LOW);
+  digitalWrite(PIN_SOLENOID, LOW);
 
   SetLEDState(LEDState_Off);
 
   Entropy.initialize();
+}
+
+void writeEEPROM(unsigned int eeaddress, byte data )
+{
+  Wire.beginTransmission(EEPROMDEVICEADDRESS);
+  Wire.write((int)(eeaddress >> 8));   // MSB
+  Wire.write((int)(eeaddress & 0xFF)); // LSB
+  Wire.write(data);
+  Wire.endTransmission();
+
+  delay(5);
+}
+
+byte readEEPROM(unsigned int eeaddress )
+{
+  byte rdata = 0xFF;
+
+  Wire.beginTransmission(EEPROMDEVICEADDRESS);
+  Wire.write((int)(eeaddress >> 8));   // MSB
+  Wire.write((int)(eeaddress & 0xFF)); // LSB
+  Wire.endTransmission();
+
+  Wire.requestFrom(EEPROMDEVICEADDRESS,1);
+
+  if (Wire.available()) rdata = Wire.read();
+
+  return rdata;
 }
 
 void AddButton(uint8_t* addr, uint8_t* secret)
@@ -202,7 +235,7 @@ void AddButton(uint8_t* addr, uint8_t* secret)
     uint16_t startaddr = i * STORAGESIZE;
     for (uint16_t j = 0; j < ADDRSIZE; j++)
     {
-      uint8_t eeprombyte = EEPROM.read(startaddr + j);
+      uint8_t eeprombyte = readEEPROM(startaddr + j);
       if (eeprombyte != 0xFF && eeprombyte != addr[j])
       {
         emptyslot = false;
@@ -213,10 +246,10 @@ void AddButton(uint8_t* addr, uint8_t* secret)
     if (emptyslot)
     {
       for (uint16_t j = 0; j < ADDRSIZE; j++)
-        EEPROM.write(startaddr + j, addr[j]);
+        writeEEPROM(startaddr + j, addr[j]);
 
       for (uint16_t j = 0; j < SECRETSIZE; j++)
-        EEPROM.write(startaddr + j + ADDRSIZE, secret[j]);
+        writeEEPROM(startaddr + j + ADDRSIZE, secret[j]);
 
       Serialprintf("DEBUG: stored button in slot %i\n", i);
 
@@ -235,7 +268,7 @@ void RemoveButton(uint8_t* addr)
     bool sameaddr = true;
     for (uint16_t j = 0; j < ADDRSIZE; j++)
     {
-      uint8_t eeprombyte = EEPROM.read(startaddr + j);
+      uint8_t eeprombyte = readEEPROM(startaddr + j);
       if (eeprombyte != addr[j])
       {
         sameaddr = false;
@@ -248,7 +281,7 @@ void RemoveButton(uint8_t* addr)
     Serialprintf("DEBUG: erasing slot %i\n", i);
 
     for (uint16_t j = 0; j < STORAGESIZE; j++)
-      EEPROM.write(startaddr + j, 0xFF);
+      writeEEPROM(startaddr + j, 0xFF);
   }
 }
 
@@ -261,7 +294,7 @@ bool GetButtonSecret(uint8_t* addr, uint8_t* secret)
     bool isempty = true;
     for (uint16_t j = 0; j < ADDRSIZE; j++)
     {
-      uint8_t eeprombyte = EEPROM.read(startaddr + j);
+      uint8_t eeprombyte = readEEPROM(startaddr + j);
       if (isempty && eeprombyte != 0xFF)
         isempty = false;
 
@@ -280,7 +313,7 @@ bool GetButtonSecret(uint8_t* addr, uint8_t* secret)
       Serialprintf("DEBUG: getting secret from slot %i\n", i);
 
       for (uint16_t j = 0; j < SECRETSIZE; j++)
-        secret[j] = EEPROM.read(startaddr + j + ADDRSIZE);
+        secret[j] = readEEPROM(startaddr + j + ADDRSIZE);
 
       return true;
     }
@@ -302,7 +335,7 @@ void ListButtons()
     bool     isempty = true;
     for (uint16_t j = 0; j < ADDRSIZE; j++)
     {
-      uint8_t eeprombyte = EEPROM.read(startaddr + j);
+      uint8_t eeprombyte = readEEPROM(startaddr + j);
       if (isempty && eeprombyte != 0xFF)
         isempty = false;
 
@@ -646,7 +679,7 @@ void loop()
         stepper.move(MOTOR_STEPS*(RPM/60)*10);
       }
     }
-    if(StateSolenoid == true && ((millis() - SolenoidStartTime) > (10*1000)) ){
+    if(StateSolenoid == true && ((millis() - SolenoidStartTime) > (5*1000)) ){
       digitalWrite(PIN_SOLENOID, LOW);
       StateSolenoid = false;
     }
