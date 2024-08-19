@@ -26,6 +26,8 @@ A4988 stepper(MOTOR_STEPS, DIR, STEP);
 bool    StateSolenoid = false;
 bool    StateHorn = false;
 uint32_t SolenoidStartTime;
+bool    StateSolenoidInactive = false;
+uint32_t SolenoidInactiveStartTime;
 
 
 
@@ -57,6 +59,9 @@ uint32_t SolenoidStartTime;
 #define LEDState_Reading     1
 #define LEDState_Authorized  2
 #define LEDState_Busy        3
+
+#define SPACEState_Open      1
+#define SPACEState_Closed    0
 
 #define htons(x) ( ((x)<<8) | (((x)>>8)&0xFF) )
 #define ntohs(x) htons(x)
@@ -90,6 +95,7 @@ uint8_t  g_ledstate = LEDState_Off;
 uint32_t g_ledtimestart;
 bool     g_fade;
 bool     g_lockopen;
+bool     g_spacestate = SPACEState_Closed;
 
 #define LED_PERIOD 1024
 
@@ -495,6 +501,7 @@ bool GetHexWordFromCMD(char* cmdbuf, uint8_t cmdbuffill, uint8_t* wordpos, uint8
 #define CMD_ADD_BUTTON    "add_button"
 #define CMD_REMOVE_BUTTON "remove_button"
 #define CMD_LIST_BUTTONS "list_buttons"
+#define CMD_SPACESTATE "spacestate"
 
 void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
 {
@@ -504,6 +511,7 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
   bool isadd = strncmp(CMD_ADD_BUTTON, cmdbuf, strlen(CMD_ADD_BUTTON)) == 0;
   bool isremove = strncmp(CMD_REMOVE_BUTTON, cmdbuf, strlen(CMD_REMOVE_BUTTON)) == 0;
   bool islist = strncmp(CMD_LIST_BUTTONS, cmdbuf, strlen(CMD_LIST_BUTTONS)) == 0;
+  bool isspacestate = strncmp(CMD_SPACESTATE, cmdbuf, strlen(CMD_SPACESTATE)) == 0;
 
   if (isadd || isremove)
   {
@@ -554,6 +562,20 @@ void ParseCMD(char* cmdbuf, uint8_t cmdbuffill)
   else if (islist)
   {
     ListButtons();
+  }
+  else if (isspacestate)
+  {
+    uint8_t wordpos = 0;
+    wordpos = NextWordPos(cmdbuf, cmdbuffill, wordpos);
+    bool isopen = strncmp("open", &cmdbuf[wordpos], strlen("open")) == 0;
+    bool isclosed = strncmp("closed", &cmdbuf[wordpos], strlen("closed")) == 0;
+    if(isopen || isclosed){
+      Serial.print("Old state: ");
+      Serial.println(g_spacestate == SPACEState_Open ? "open" : "closed");
+      g_spacestate = isopen ? SPACEState_Open : SPACEState_Closed;
+    }
+    Serial.print("Current state: ");
+    Serial.println(g_spacestate == SPACEState_Open ? "open" : "closed");
   }
   else
   {
@@ -634,16 +656,18 @@ void loop()
       {
         SetLEDState(LEDState_Authorized);
         Serial.print("iButton authenticated\n");
-        ToggleLock();
+        g_lockopen = true;
+        // DelayLEDs(5000);
+        // ToggleLock();
         deniedcount = 0;
 
-        if(g_lockopen == true){
+        // if(g_lockopen == true){
           StateSolenoid = true;
           SolenoidStartTime = millis();
           Serial.print("Solenoid activated\n");
           digitalWrite(PIN_SOLENOID, HIGH);
-          stepper.move(MOTOR_STEPS*(RPM/60)*10);
-        }
+          // stepper.move(MOTOR_STEPS*(RPM/60)*10);
+        // }
 
       }
       else
@@ -668,20 +692,37 @@ void loop()
 
     ProcessLEDs();
 
-    digitalWrite(PIN_LEDSOLENOID, HIGH);
+    if(g_spacestate == SPACEState_Open){
+      digitalWrite(PIN_LEDSOLENOID, HIGH);
+    }else{
+      digitalWrite(PIN_LEDSOLENOID, LOW);
+    }
     digitalWrite(PIN_LEDHORN, HIGH);
     if (digitalRead(INPUT_SOLENOID) == LOW) {
-      if(StateSolenoid == false){
-        StateSolenoid = true;
-        SolenoidStartTime = millis();
-        Serial.print("Solenoid activated\n");
-        digitalWrite(PIN_SOLENOID, HIGH);
-        stepper.move(MOTOR_STEPS*(RPM/60)*10);
+      if(g_spacestate == SPACEState_Open){
+        if(StateSolenoid == false){
+          StateSolenoid = true;
+          SolenoidStartTime = millis();
+          Serial.print("Solenoid activated\n");
+          digitalWrite(PIN_SOLENOID, HIGH);
+          g_lockopen = true;
+          // stepper.move(MOTOR_STEPS*(RPM/60)*10);
+        }
+      }else{
+        if(StateSolenoidInactive == false){
+          StateSolenoidInactive = true;
+          SolenoidInactiveStartTime = millis();
+          Serial.print("Spacestate closed, Solenoid button not active\n");
+        }
       }
     }
     if(StateSolenoid == true && ((millis() - SolenoidStartTime) > (5*1000)) ){
       digitalWrite(PIN_SOLENOID, LOW);
       StateSolenoid = false;
+      g_lockopen = false;
+    }
+    if(StateSolenoidInactive == true && ((millis() - SolenoidInactiveStartTime) > (1*1000)) ){
+      StateSolenoidInactive = false;
     }
     if (digitalRead(INPUT_HORN) == LOW) {
       if(StateHorn == false){
