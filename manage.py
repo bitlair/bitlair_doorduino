@@ -4,7 +4,7 @@ import serial
 import sys
 import time
 
-SERIAL_PORTS = [ '/dev/ttyS1', '/dev/ttyS2' ]
+SERIAL_PORTS = [ '/dev/ttyS2' ]
 
 
 def open_port(tty):
@@ -56,7 +56,7 @@ def remove_button(ports, button):
                     break
                 print(line)
 
-def add_button(ser, button, secret):
+def add_button(ports, button, secret):
     for port in ports:
         with open_port(port) as ser:
             ser.write(b'\r\n')

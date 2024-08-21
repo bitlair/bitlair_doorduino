@@ -1,0 +1,10 @@
+[mqtt]
+doorbell.subject=bitlair/doorduino/doorbell
+dooropen.subject=bitlair/doorduino/dooropen
+lockstate.subject=bitlair/doorduino/lockstate
+server=mqtt.bitlair.nl
+mqtt-simple=/usr/local/bin/mqtt-simple
+
+[serial]
+device=/dev/ttyS2
+
