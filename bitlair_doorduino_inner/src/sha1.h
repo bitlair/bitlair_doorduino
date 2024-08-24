@@ -1,0 +1,69 @@
+#ifndef SHA1_H
+#define SHA1_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+#define __LITTLE_ENDIAN__
+//#define __BIG_ENDIAN__
+
+namespace sha1
+{
+  /* This code is public-domain - it is based on libcrypt
+   * placed in the public domain by Wei Dai and other contributors.
+   */
+  // gcc -Wall -DSHA1TEST -o sha1test sha1.c && ./sha1test
+
+  #ifdef __BIG_ENDIAN__
+  # define SHA_BIG_ENDIAN
+  #elif defined __LITTLE_ENDIAN__
+  /* override */
+  #elif defined __BYTE_ORDER
+  # if __BYTE_ORDER__ ==  __ORDER_BIG_ENDIAN__
+  # define SHA_BIG_ENDIAN
+  # endif
+  #else // ! defined __LITTLE_ENDIAN__
+  # include <machine/endian.h> // machine/endian.h
+  # if __BYTE_ORDER__ ==  __ORDER_BIG_ENDIAN__
+  #  define SHA_BIG_ENDIAN
+  # endif
+  #endif
+
+
+  /* header */
+
+  #define HASH_LENGTH 20
+  #define BLOCK_LENGTH 64
+
+  typedef struct sha1nfo {
+          uint32_t buffer[BLOCK_LENGTH/4];
+          uint32_t state[HASH_LENGTH/4];
+          uint32_t byteCount;
+          uint8_t bufferOffset;
+          uint8_t keyBuffer[BLOCK_LENGTH];
+          uint8_t innerHash[HASH_LENGTH];
+  } sha1nfo;
+
+  /* public API - prototypes - TODO: doxygen*/
+
+  /**
+   */
+  void sha1_init(sha1nfo *s);
+  /**
+   */
+  void sha1_writebyte(sha1nfo *s, uint8_t data);
+  /**
+   */
+  void sha1_write(sha1nfo *s, const char *data, size_t len);
+  /**
+   */
+  uint8_t* sha1_result(sha1nfo *s);
+  /**
+   */
+  void sha1_initHmac(sha1nfo *s, const uint8_t* key, int keyLength);
+  /**
+   */
+  uint8_t* sha1_resultHmac(sha1nfo *s);
+}
+
+#endif //SHA1_H
