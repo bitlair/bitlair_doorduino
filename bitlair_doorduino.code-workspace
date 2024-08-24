@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "bitlair_doorduino"
+		},
+		{
+			"path": "bitlair_doorduino_inner"
+		},
+		{
+			"path": "bitlair_doorduino_door"
+		},
+		{
+			"path": "reset_eeprom"
+		}
+	],
+	"settings": {}
+}
