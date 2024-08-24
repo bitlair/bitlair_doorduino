@@ -4,6 +4,9 @@ dooropen.subject=bitlair/doorduino/dooropen
 lockstate.subject=bitlair/doorduino/lockstate
 server=mqtt.bitlair.nl
 mqtt-simple=/usr/local/bin/mqtt-simple
+client-id=doorpi
+state-bitlair.subject=bitlair/state
+state-djo.subject=bitlair/state/djo
 
 [serial]
 device=/dev/ttyS2
