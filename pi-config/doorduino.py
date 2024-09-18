@@ -17,6 +17,7 @@ import re
 import threading
 import syslog
 import csv
+import git
 
 import logging
 from paho.mqtt import client as mqtt_client
@@ -200,16 +201,33 @@ def serial_monitor_thread():
             time.sleep(2)
 
 
-def git_update(git_binary, git_dir):
+def git_update(git_dir):
     log("Updating git")
-    subprocess.call([git_binary, "-C", git_dir, "pull"])
+    # subprocess.call(["git", "-C", git_dir, "pull"])
+    repo = git.Repo(git_dir)
+    # print('Remotes:')
+    # for remote in repo.remotes:
+    #     print(f'- {remote.name} {remote.url}')
+    try:
+        pull = repo.remotes.origin.pull()
+    except git.exc.GitCommandError:
+        print("Git pull failed")
+        return False
+
+    # if pull[0].flags == 128:
+    #     print("Git pull failed")
+    #     return False
+    return True
 
 
 def git_thread():
     global ser
     global buttons
     print("GIT init")
-    git_update("git", "toegang")
+    if(not git_update("toegang")):
+       print("Aborting GIT update thread")
+       return False
+
     git_buttons = {}
     with open('toegang/toegang.csv', newline='') as csvfile:
         data = csvfile.read()
