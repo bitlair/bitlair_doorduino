@@ -89,13 +89,13 @@ void setup() {
       state = STATE_OPEN;
       Serial.println("RECEIVED OPEN");
       stepper.enable();
-      stepper.startRotate(-560);
+      stepper.startRotate(-900);
     }
     if (digitalRead(DOOR_CLOSE) == HIGH && state == STATE_IDLE){
       state = STATE_CLOSE;
       Serial.println("RECEIVED CLOSE");
       stepper.enable();
-      stepper.startRotate(560);
+      stepper.startRotate(900);
     }
 
 }
