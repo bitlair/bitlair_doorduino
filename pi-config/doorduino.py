@@ -269,6 +269,9 @@ def update_buttons():
         # else:
         #     print("should be there " + button)
 
+    print("Update buttons finished")
+
+
 def git_thread():
     print("Updating buttons")
     update_buttons()
