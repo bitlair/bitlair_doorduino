@@ -7,7 +7,7 @@ Type=idle
 Restart=on-failure
 User=root
 WorkingDirectory=/root/bitlair_doorduino/pi-config
-ExecStart=/usr/bin/python3 doorduino.py -c config
+ExecStart=/usr/bin/python3 -u doorduino.py -c config
 
 [Install]
 WantedBy=multi-user.target
