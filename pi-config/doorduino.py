@@ -220,7 +220,7 @@ def git_update(git_dir):
     return True
 
 
-def git_thread():
+def update_buttons():
     global ser
     global buttons
     print("GIT init")
@@ -269,6 +269,11 @@ def git_thread():
         # else:
         #     print("should be there " + button)
 
+def git_thread():
+    print("Updating buttons")
+    update_buttons()
+    print("Update buttons finished, sleeping for 3600 seconds")
+    time.sleep(3600)
 
 
 def threadwrap(threadfunc):
@@ -304,8 +309,7 @@ def main(argv):
     threading.Thread(target = threadwrap(serial_monitor_thread)).start()
     time.sleep(5) # Give doorduino time to start before sending spacestate data
     threading.Thread(target = threadwrap(mqtt_thread)).start()
-    # threading.Thread(target = threadwrap(git_thread)).start()
-    git_thread()
+    threading.Thread(target = threadwrap(git_thread)).start()
 
 
 if __name__ == "__main__":
